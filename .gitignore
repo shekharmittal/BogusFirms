@@ -50,4 +50,4 @@ Temporary Items
 *.dta
 *.csv
 
-Models/*
+BogusFirmCatching\Models\*

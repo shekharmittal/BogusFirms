@@ -31,9 +31,9 @@ def show_roc(roc):
     #show(plot)
 
 # Function plots the bar chart showing the importance of all the variable for a model
-def show_varimp(varimp):
+def show_varimp(varimp,title):
     d2=varimp
-    plot2=Bar(d2,values='percentage',plot_width=800,plot_height=800, label=CatAttr(columns='variable', sort=False), title="Importance of Variables", ylabel="Percentage Explained", color=Spectral4[1])
+    plot2=Bar(d2,values='percentage',plot_width=800,plot_height=800, label=CatAttr(columns='variable', sort=False), title=title, ylabel="Percentage Explained", color=Spectral4[1])
     output_file('varimp.html')
     return plot2
 
@@ -52,7 +52,7 @@ def analyze_model(model,of='Graphs/gridplot.html',title='Checking importance of 
     # than maximum number of variables
     if n_rows!=None and n_rows<data.shape[0]:
         data=data.head(n=n_rows)
-    plot2=show_varimp(data)    
+    plot2=show_varimp(data,title)    
     plot3=gridplot([[plot,plot2]])
 #    plot3.title=title
     output_file(of)

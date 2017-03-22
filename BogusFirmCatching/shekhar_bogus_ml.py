@@ -142,7 +142,6 @@ show(plot)
 #%%
 for i in xrange(len(rf_models)):
     h2o.save_model(rf_models[i],path='Models')
-
 #%%
 for i in xrange(7):
     show(analyze_model(rf_models[i],of=r"Graphs/BogusOnline_model{}_v2.html".format(i+1),n_rows=30)) 
@@ -154,8 +153,8 @@ generate_predictions(rf_models,ValidData,'PredictionsBogusOnline_v2.csv','BogusO
 rf_models[0].train(return_features, 'bogus_cancellation', training_frame=TrainData, validation_frame=ValidData)
 rf_models[1].train(dealer_features, 'bogus_cancellation', training_frame=TrainData, validation_frame=ValidData)
 rf_models[2].train(all_network_features, 'bogus_cancellation', training_frame=TrainData, validation_frame=ValidData)
-rf_models[3].train(return_featuers+dealer_features, 'bogus_cancellation', training_frame=TrainData, validation_frame=ValidData)
-rf_models[4].train(return_featuers+all_network_features, 'bogus_cancellation', training_frame=TrainData, validation_frame=ValidData)
+rf_models[3].train(return_features+dealer_features, 'bogus_cancellation', training_frame=TrainData, validation_frame=ValidData)
+rf_models[4].train(return_features+all_network_features, 'bogus_cancellation', training_frame=TrainData, validation_frame=ValidData)
 rf_models[5].train(dealer_features+all_network_features, 'bogus_cancellation', training_frame=TrainData, validation_frame=ValidData)
 rf_models[6].train(return_features+dealer_features+all_network_features, 'bogus_cancellation', training_frame=TrainData, validation_frame=ValidData)
 
@@ -170,32 +169,13 @@ for i in xrange(7):
 #%%
 generate_predictions(rf_models,ValidData,r'PredictionsBogusCancellation_v2.csv','BogusCancellationModel')
 #%%
-
-PredictionDataModels = []
-for i in xrange(len(rf_models)):
-    PredictionDataModels.append(set_predictions(rf_models[i],ValidData))
-    PredictionDataModels[i]=set_prediction_name(PredictionDataModels[i],'p1','BogusCancellationModel{}'.format(i+1))
-    
-Y = pd.concat(PredictionDataModels,axis=1,ignore_index=False)
-    #Y=Y.as_data_frame(use_pandas=True)
-    
-Z=ValidData.as_data_frame(use_pandas=True)
-Z=Z[['DealerTIN','TaxQuarter','bogus_online','bogus_cancellation','profile_merge','transaction_merge','salesmatch_merge','purchasematch_merge','purchasenetwork_merge','salesnetwork_merge']]
-Z.index=Z.index.map(unicode)
-    
-PredictionData=pd.concat([Z,Y],axis=1,ignore_index=False)
-    
-
-
-#%%
-
-
 # In this cell, we compare the model where we add match and proportion sales made to registered firms
 FinalEverything_minusq12=FinalEverything[FinalEverything['TaxQuarter']!=12]
 
 #ReturnsPostY2WithProfilesWithTransactionsWithMatch=ReturnsPostY2WithProfilesWithTransactionsWithMatch[ReturnsPostY2WithProfilesWithTransactionsWithMatch['TaxQuarter']!=12]
 #FramePostY2=load_h2odataframe_returns(ReturnsPostY2WithProfiles)
 FrameFinalEverything_minusq12=load_h2odataframe_returns(FinalEverything_minusq12)
+
 
 FrameFinalEverything_minusq12['TaxQuarter']=FrameFinalEverything_minusq12['TaxQuarter'].asnumeric()
 
@@ -205,59 +185,49 @@ c = FrameFinalEverything_minusq12['TaxQuarter']
 train_2012_13 = FrameFinalEverything_minusq12[ (b < 200) & (c < 17)]
 valid_2012_13 = FrameFinalEverything_minusq12[ (200 <= b) & (b < 232) & (c < 17)]
 valid_2014 = FrameFinalEverything_minusq12[ (200 <= b) & (b < 232) & (c >= 17)]
-  
-
-
+    
 rf_models[0].train(return_features, 'bogus_online', training_frame=train_2012_13, validation_frame=valid_2012_13)
 rf_models[1].train(dealer_features, 'bogus_online', training_frame=train_2012_13, validation_frame=valid_2012_13)
 rf_models[2].train(all_network_features, 'bogus_online', training_frame=train_2012_13, validation_frame=valid_2012_13)
-rf_models[3].train(return_featuers+dealer_features, 'bogus_online', training_frame=train_2012_13, validation_frame=valid_2012_13)
-rf_models[4].train(return_featuers+all_network_features, 'bogus_online', training_frame=train_2012_13, validation_frame=valid_2012_13)
+rf_models[3].train(return_features+dealer_features, 'bogus_online', training_frame=train_2012_13, validation_frame=valid_2012_13)
+rf_models[4].train(return_features+all_network_features, 'bogus_online', training_frame=train_2012_13, validation_frame=valid_2012_13)
 rf_models[5].train(dealer_features+all_network_features, 'bogus_online', training_frame=train_2012_13, validation_frame=valid_2012_13)
 rf_models[6].train(return_features+dealer_features+all_network_features, 'bogus_online', training_frame=train_2012_13, validation_frame=valid_2012_13)
 
 legends=["Return features","Profile features","Network features","1 + 2","1 + 3","2 + 3","1 + 2 + 3"]
 
-plot=compare_models(rf_models,legends, of='Graphs/BogusOnline_comparison_plot_AllCombinations_minusq12_minusY5.html',title='Comparing All Models')
+plot=compare_models(rf_models,legends, of='Graphs/BogusOnline_comparison_plot_AllCombinations_minusq12_minusY5.html',title='Comparing All Models, Bogus Online (Drop Y5 in training)')
 show(plot)
 
+#%%
+generate_predictions(rf_models,valid_2012_13,'PredictionsBogusOnline_v2_2013_MinusY5.csv','BogusOnlineModel')
+generate_predictions(rf_models,valid_2014,'PredictionsBogusOnline_v2_2014_MinusY5.csv','BogusOnlineModel')
 
 #%%
-generate_predictions(rf_models,valid_2012_13,'PredictionsBogusOnline_v2_2013_test.csv','BogusOnlineModel')
-generate_predictions(rf_models,valid_2014,'PredictionsBogusOnline_v2_2014_test.csv','BogusOnlineModel')
-
+for i in xrange(7):
+    show(analyze_model(rf_models[i],of=r"Graphs/BogusOnline_model{}_v2_MinusY5.html".format(i+1),n_rows=30)) 
 #%%
+features=[return_features,dealer_features,all_network_features,return_features+dealer_features,return_features+all_network_features,dealer_features+all_network_features,return_features+dealer_features+all_network_features]
+
+train_2012 = FrameFinalEverything_minusq12[ (b < 200) & (c < 13)]
+valid_2012 = FrameFinalEverything_minusq12[ (200 <= b) & (b < 232) & (c < 13)]
+valid_2013 = FrameFinalEverything_minusq12[ (200 <= b) & (b < 232) & (c >= 13) & (c < 17)]
+valid_2014 = FrameFinalEverything_minusq12[ (200 <= b) & (b < 232) & (c >= 17)]
+
+for i in xrange(len(features)):
+    rf_models[i].train(features[i], 'bogus_online', training_frame=train_2012, validation_frame=valid_2012)
+
+legends=["Return features","Profile features","Network features","1 + 2","1 + 3","2 + 3","1 + 2 + 3"]
+
+plot=compare_models(rf_models,legends, of='Graphs/BogusOnline_comparison_plot_AllCombinations_minusq12_minusY5_OnlyY3.html',title='Comparing All Models, Bogus Online (Only Y3 in training)')
+show(plot)
 #%%
-PredictionDataModel1=set_predictions(rf_v1,ValidData)
-PredictionDataModel1=set_prediction_name(PredictionDataModel1,'p1','BogusOnlineModel1')
-
-PredictionDataModel2=set_predictions(rf_v2,ValidData)
-PredictionDataModel2=set_prediction_name(PredictionDataModel2,'p1','BogusOnlineModel2')
-
-PredictionDataModel3=set_predictions(rf_v3,ValidData)
-PredictionDataModel3=set_prediction_name(PredictionDataModel3,'p1','BogusOnlineModel3')
-
-PredictionDataModel4=set_predictions(rf_v4,ValidData)
-PredictionDataModel4=set_prediction_name(PredictionDataModel4,'p1','BogusOnlineModel4')
-
-PredictionDataModel5=set_predictions(rf_v5,ValidData)
-PredictionDataModel5=set_prediction_name(PredictionDataModel5,'p1','BogusOnlineModel5')
-
-PredictionDataModel6=set_predictions(rf_v6,ValidData)
-PredictionDataModel6=set_prediction_name(PredictionDataModel6,'p1','BogusOnlineModel6')
-
-PredictionDataModel7=set_predictions(rf_v7,ValidData)
-PredictionDataModel7=set_prediction_name(PredictionDataModel7,'p1','BogusOnlineModel7')
-
-Y=pd.concat([PredictionDataModel1,PredictionDataModel2,PredictionDataModel3,PredictionDataModel4,PredictionDataModel5,PredictionDataModel6,PredictionDataModel7],axis=1,ignore_index=False)
-#Y=Y.as_data_frame(use_pandas=True)
-
-Z=ValidData.as_data_frame(use_pandas=True)
-Z=Z[['DealerTIN','TaxQuarter','bogus_online','bogus_cancellation','profile_merge','transaction_merge','salesmatch_merge','purchasematch_merge','purchasenetwork_merge','salesnetwork_merge']]
-Z.index=Z.index.map(unicode)
-
-PredictionData10=pd.concat([Y,Z],axis=1)
-PredictionData10.to_csv(path_or_buf='PredictionsBogusOnline_v2.csv')
+generate_predictions(rf_models,valid_2012,'PredictionsBogusOnline_v2_2012_OnlyY3.csv','BogusOnlineModel')
+generate_predictions(rf_models,valid_2013,'PredictionsBogusOnline_v2_2013_OnlyY3.csv','BogusOnlineModel')
+generate_predictions(rf_models,valid_2014,'PredictionsBogusOnline_v2_2014_OnlyY3.csv','BogusOnlineModel')
+#%%
+for i in xrange(7):
+    show(analyze_model(rf_models[i],of=r"Graphs/BogusOnline_model{}_v2_OnlyY3.html".format(i+1),n_rows=30, title=legends[i])) 
 #%%
 
 rf_v1.train(basic_features+important_features+remaining_features, 'bogus_cancellation', training_frame=TrainData, validation_frame=ValidData)

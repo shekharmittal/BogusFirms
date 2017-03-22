@@ -64,7 +64,7 @@ def multiline_plot_addline(plot, x,y, color,legend):
 def compare_models(models,legends,of='Graphs/comparison_plot.html',title='Comparing different models'): 
     hover=HoverTool(tooltips=[("(x,y)","($x,$y)")])
     plot=figure(plot_width=800,plot_height=800,tools=[hover,'pan','wheel_zoom','box_zoom','reset','resize'], x_axis_label='Legit Insulted', y_axis_label='Bogus missed')
-    colors = Spectral4[:4]+Purples[:3]+YlGnBu8[:7]
+    colors = Spectral4[:4]+Purples9[:3]+YlGnBu8[:7]
     for i in xrange(len(models)):
         my_array=np.array(models[i].roc(valid=1))
         multiline_plot_addline(plot,my_array[0],1-my_array[1],color=colors[i], legend=legends[i])

@@ -182,5 +182,6 @@ def generate_predictions(models,ValidationData,FilePath,ColumnTitle):
     Z=Z[['DealerTIN','TaxQuarter','bogus_online','bogus_cancellation','profile_merge','transaction_merge','salesmatch_merge','purchasematch_merge','purchasenetwork_merge','salesnetwork_merge']]
     Z.index=Z.index.map(unicode)
     
-    PredictionData=pd.merge(Z,Y, how='left', on=['DealerTIN','TaxQuarter'], indicator='prediction_merge')
+    PredictionData=pd.concat([Z,Y],axis=1,ignore_index=False)
+    #PredictionData=pd.merge(Z,Y, how='left', on=['DealerTIN','TaxQuarter'], indicator='prediction_merge')
     PredictionData.to_csv(path_or_buf=FilePath)

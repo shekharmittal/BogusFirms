@@ -171,6 +171,24 @@ for i in xrange(7):
 generate_predictions(rf_models,ValidData,r'PredictionsBogusCancellation_v2.csv','BogusCancellationModel')
 #%%
 
+PredictionDataModels = []
+for i in xrange(len(rf_models)):
+    PredictionDataModels.append(set_predictions(rf_models[i],ValidData))
+    PredictionDataModels[i]=set_prediction_name(PredictionDataModels[i],'p1','BogusCancellationModel{}'.format(i+1))
+    
+Y = pd.concat(PredictionDataModels,axis=1,ignore_index=False)
+    #Y=Y.as_data_frame(use_pandas=True)
+    
+Z=ValidData.as_data_frame(use_pandas=True)
+Z=Z[['DealerTIN','TaxQuarter','bogus_online','bogus_cancellation','profile_merge','transaction_merge','salesmatch_merge','purchasematch_merge','purchasenetwork_merge','salesnetwork_merge']]
+Z.index=Z.index.map(unicode)
+    
+PredictionData=pd.concat([Z,Y],axis=1,ignore_index=False)
+    
+
+
+#%%
+
 
 # In this cell, we compare the model where we add match and proportion sales made to registered firms
 FinalEverything_minusq12=FinalEverything[FinalEverything['TaxQuarter']!=12]

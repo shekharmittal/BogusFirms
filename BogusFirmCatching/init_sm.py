@@ -23,9 +23,9 @@ def load_profile():
     profiles = pd.read_stata(bogus_dealers_dir+"\FeatureDealerProfiles.dta", convert_dates=False)
     return profiles
 
-def load_registeredsales():
-    transactions = pd.read_stata(bogus_dealers_dir+"\FeatureUnRegisteredSaleTransactions.dta", convert_dates=False)
-    return transactions
+#def load_registeredsales():
+#    transactions = pd.read_stata(bogus_dealers_dir+"\FeatureUnRegisteredSaleTransactions.dta", convert_dates=False)
+#    return transactions
 
 def load_matchsales():
     SalesDiscrepancy=pd.read_stata(bogus_dealers_dir+"\SaleDiscrepancyAll.dta", convert_dates=False)
@@ -69,6 +69,24 @@ def load_purchasenetwork():
         PurchaseNetworkQuarter=PurchaseNetworkQuarter.append(PurchaseNetworkQuarterX,ignore_index=True)
     return PurchaseNetworkQuarter
 
+def load_purchasedownstream():
+    PurchaseDS=pd.read_stata(bogus_dealers_dir+"\FeatureDownStreamnessPurchases.dta", convert_dates=False)
+    return PurchaseDS
+    
+def load_salesdownstream():
+    SalesDS=pd.read_stata(bogus_dealers_dir+"\FeatureDownStreamnessSales.dta", convert_dates=False)
+    return SalesDS
+
+def set_downstream_factors(fr):
+    fr['Missing_SalesDSUnTaxProp']=fr['Missing_SalesDSUnTaxProp'].asfactor()
+    fr['Missing_SalesDSCreditRatio']=fr['Missing_SalesDSCreditRatio'].asfactor()
+    fr['Missing_SalesDSVatRatio']=fr['Missing_SalesDSVatRatio'].asfactor()
+    fr['Missing_PurchaseDSUnTaxProp']=fr['Missing_PurchaseDSUnTaxProp'].asfactor()
+    fr['Missing_PurchaseDSCreditRatio']=fr['Missing_PurchaseDSCreditRatio'].asfactor()
+    fr['Missing_PurchaseDSVatRatio']=fr['Missing_PurchaseDSVatRatio'].asfactor()
+    fr['salesds_merge']=fr['salesds_merge'].asfactor()
+    fr['purchaseds_merge']=fr['purchaseds_merge'].asfactor()
+
 def load_h2odataframe_returns(returns):
     fr=h2o.H2OFrame(python_obj=returns)
     fr=set_return_factors(fr)
@@ -77,6 +95,7 @@ def load_h2odataframe_returns(returns):
     fr=set_transaction_factors(fr)
     fr=set_purchasenetwork_factors(fr)
     fr=set_salenetwork_factors(fr)
+    fr=set_downstream_factors(fr)
     return fr
     
 def set_return_factors(fr):    
@@ -139,14 +158,6 @@ def set_salenetwork_factors(fr):
     fr['salesnetwork_merge']=fr['salesnetwork_merge'].asfactor()
     return fr
       
-def divide_train_test(fr):
-    """ train and test sets - outdated. In future - divide by DealerTIN """
-    b = fr['TIN_hash_byte']
-    train = fr[ b < 200 ]
-    valid = fr[ (200 <= b) & (b < 232) ]
-    test  = fr[ 232 <= b ]
-    return train, valid, test
-
 #def set_predictions(model,data):
 #    X=model.predict(data)
 #    X=X.as_data_frame(use_pandas=True)
@@ -154,34 +165,3 @@ def divide_train_test(fr):
 #    X=X.drop(['p0','predict'],axis=1)
 #    result=pd.concat([Y,X],axis=1)
 #    return result
-
-def set_predictions(model,data):
-    X=model.predict(data)
-    X=X.as_data_frame(use_pandas=True)
-#    Y=data.as_data_frame(use_pandas=True)
-    X=X.drop(['p0','predict'],axis=1)
-#    result=pd.concat([Y,X],axis=1)
-    return X
-
-def set_prediction_name(data,original,new):
-    data.rename(index=str,columns={original:new},inplace=True)
-    return data
-
-
-#%%
-def generate_predictions(models,ValidationData,FilePath,ColumnTitle):
-    PredictionDataModels = []
-    for i in xrange(len(models)):
-        PredictionDataModels.append(set_predictions(models[i],ValidationData))
-        PredictionDataModels[i]=set_prediction_name(PredictionDataModels[i],'p1',ColumnTitle+'{}'.format(i+1))
-    
-    Y = pd.concat(PredictionDataModels,axis=1,ignore_index=False)
-    #Y=Y.as_data_frame(use_pandas=True)
-    
-    Z=ValidationData.as_data_frame(use_pandas=True)
-    Z=Z[['DealerTIN','TaxQuarter','bogus_online','bogus_cancellation','profile_merge','transaction_merge','salesmatch_merge','purchasematch_merge','purchasenetwork_merge','salesnetwork_merge']]
-    Z.index=Z.index.map(unicode)
-    
-    PredictionData=pd.concat([Z,Y],axis=1,ignore_index=False)
-    #PredictionData=pd.merge(Z,Y, how='left', on=['DealerTIN','TaxQuarter'], indicator='prediction_merge')
-    PredictionData.to_csv(path_or_buf=FilePath)

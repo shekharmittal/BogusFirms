@@ -84,9 +84,10 @@ network_features=[ u'Purchases_pagerank', u'Purchases_triangle_count', u'Purchas
                   u'salesnetwork_merge']
 
 ds_features=[u'purchaseds_merge', u'MaxPurchaseProp', u'PurchaseDSUnTaxProp',\
-             u'PurchaseDSCreditRatio', u'PurchaseDSVatRatio', u'Missing_PurchaseDSUnTaxProp', \
+             u'PurchaseDSCreditRatio', u'PurchaseDSVatRatio',u'Missing_MaxPurchaseProp',\
+             u'Missing_PurchaseDSUnTaxProp', \
              u'Missing_PurchaseDSCreditRatio', u'Missing_PurchaseDSVatRatio', u'TotalSellers',\
-             u'salesds_merge', u'MaxSalesProp', u'SalesDSUnTaxProp',\
+             u'salesds_merge', u'MaxSalesProp',u'Missing_MaxSalesProp', u'SalesDSUnTaxProp',\
              u'SalesDSCreditRatio', u'SalesDSVatRatio', u'Missing_SalesDSUnTaxProp', \
              u'Missing_SalesDSCreditRatio', u'Missing_SalesDSVatRatio', u'TotalBuyers']
        
@@ -99,12 +100,15 @@ rf_models = [H2ORandomForestEstimator(
         score_each_iteration=True,
         seed=1000000) \
     for i in xrange(1,8)]
+
 #%%
 #Merging all data into one file
 # load returns data
 ReturnsAll=load_returns()
 ReturnsAll['DealerTIN']=pd.to_numeric(ReturnsAll['DealerTIN'])
 ReturnsAll['TaxQuarter']=pd.to_numeric(ReturnsAll['TaxQuarter'])
+
+ReturnsAll=ReturnsAll.drop([u'TotalOutputTax', u'NetTax',u'ExemptedSales',u'TotalTaxCredit', u'BalanceBroughtForward',u'TDSCertificates',u'LocalTaxRatio'], axis=1)
 
 # load profiles data
 Profiles=load_profile()
@@ -116,17 +120,6 @@ ReturnsAllWithProfiles=pd.merge(ReturnsAll, Profiles, how='left', on=['DealerTIN
 
 #save returns only from year 3 onwards (inclusive)
 ReturnsPostY2WithProfiles=ReturnsAllWithProfiles[ReturnsAllWithProfiles['TaxQuarter']>8]
-
-# load data related to calculating percentage sales made to registered firms
-#Transactions=load_registeredsales()
-
-# Merge Returns+Profiles+RegisteredSalesData
-#ReturnsPostY2WithProfilesWithTransactions = pd.merge(ReturnsPostY2WithProfiles, Transactions, how='left', on=['DealerTIN','TaxQuarter'], indicator='transaction_merge')
-#ReturnsPostY2WithProfilesWithTransactions['UnTaxProp']=0
-#ReturnsPostY2WithProfilesWithTransactions['RTaxProp']=0
-
-#ReturnsPostY2WithProfilesWithTransactions['UnTaxProp']=ReturnsPostY2WithProfilesWithTransactions['UnregisteredSalesTax']/ReturnsPostY2WithProfilesWithTransactions['OutputTaxBeforeAdjustment']
-#ReturnsPostY2WithProfilesWithTransactions['RTaxProp']=ReturnsPostY2WithProfilesWithTransactions['RegisteredSalesTax']/ReturnsPostY2WithProfilesWithTransactions['OutputTaxBeforeAdjustment']
 
 SalesMatch=load_matchsales()
 SalesMatch=SalesMatch.drop(['diff','absdiff','maxSalesTax','OtherDeclarationCount','MyDeclarationCount','MatchDeclarationCount','OtherDeclarationTax','MyDeclarationTax','MatchDeclarationTax'],axis=1)
@@ -147,47 +140,61 @@ ReturnsPostY2WithProfilesWithTransactionsWithMatch=pd.merge(ReturnsPostY2WithPro
 SaleNetworkQuarter=load_salenetwork()
 SaleNetworkQuarter['DealerTIN']=pd.to_numeric(SaleNetworkQuarter['DealerTIN'],errors='coerce')
 SaleNetworkQuarter['TaxQuarter']=pd.to_numeric(SaleNetworkQuarter['TaxQuarter'],errors='coerce')
-FinalEverything=pd.merge(ReturnsPostY2WithProfilesWithTransactionsWithMatch,SaleNetworkQuarter,how='left', on=['DealerTIN','TaxQuarter'], indicator='salesnetwork_merge')
+ReturnsPostY2WithProfilesWithTransactionsWithMatchWithNetwork=pd.merge(ReturnsPostY2WithProfilesWithTransactionsWithMatch,SaleNetworkQuarter,how='left', on=['DealerTIN','TaxQuarter'], indicator='salesnetwork_merge')
 
 PurchaseNetworkQuarter=load_purchasenetwork()
 PurchaseNetworkQuarter['DealerTIN']=pd.to_numeric(PurchaseNetworkQuarter['DealerTIN'],errors='coerce')
 PurchaseNetworkQuarter['TaxQuarter']=pd.to_numeric(PurchaseNetworkQuarter['TaxQuarter'],errors='coerce')
-FinalEverything=pd.merge(FinalEverything,PurchaseNetworkQuarter,how='left', on=['DealerTIN','TaxQuarter'], indicator='purchasenetwork_merge')
+ReturnsPostY2WithProfilesWithTransactionsWithMatchWithNetwork=pd.merge(ReturnsPostY2WithProfilesWithTransactionsWithMatchWithNetwork,PurchaseNetworkQuarter,how='left', on=['DealerTIN','TaxQuarter'], indicator='purchasenetwork_merge')
 
-SaleDS=load_salesdownstream()
-SaleDS['DealerTIN']=pd.to_numeric(SaleDS['DealerTIN'],errors='coerce')
-SaleDS['TaxQuarter']=pd.to_numeric(SaleDS['TaxQuarter'],errors='coerce')
-FinalEverything=pd.merge(FinalEverything,SaleDS,how='left', on=['DealerTIN','TaxQuarter'], indicator='salesds_merge')
+ReturnsPostY2WithProfilesWithTransactionsWithMatchWithNetwork_minusq12=ReturnsPostY2WithProfilesWithTransactionsWithMatchWithNetwork\
+[ReturnsPostY2WithProfilesWithTransactionsWithMatchWithNetwork['TaxQuarter']!=12]
+
+#FinalEverything_minusq12.to_csv(bogus_dealers_dir+'\FinalEverything_minusq12.csv')
 
 PurchaseDS=load_purchasedownstream()
 PurchaseDS['DealerTIN']=pd.to_numeric(PurchaseDS['DealerTIN'],errors='coerce')
 PurchaseDS['TaxQuarter']=pd.to_numeric(PurchaseDS['TaxQuarter'],errors='coerce')
-FinalEverything=pd.merge(FinalEverything,PurchaseDS,how='left', on=['DealerTIN','TaxQuarter'], indicator='purchaseds_merge')
 
-FinalEverything_minusq12=FinalEverything[FinalEverything['TaxQuarter']!=12]
+FinalEverything_minusq12=pd.merge(ReturnsPostY2WithProfilesWithTransactionsWithMatchWithNetwork_minusq12,\
+                                  PurchaseDS,how='left', on=['DealerTIN','TaxQuarter'], indicator='purchaseds_merge')
 
-del FinalEverything,ReturnsAll,Profiles,ReturnsAllWithProfiles,ReturnsPostY2WithProfiles,ReturnsPostY2WithProfilesWithTransactionsWithMatch
+#fr=load_h2odataframe_returns(FinalEverything_minusq12)
+
+SaleDS=load_salesdownstream()
+SaleDS['DealerTIN']=pd.to_numeric(SaleDS['DealerTIN'],errors='coerce')
+SaleDS['TaxQuarter']=pd.to_numeric(SaleDS['TaxQuarter'],errors='coerce')
+
+FinalEverything_minusq12=pd.merge(FinalEverything_minusq12,SaleDS,how='left',\
+                                 on=['DealerTIN','TaxQuarter'], indicator='salesds_merge')
+
+
+del ReturnsAll,Profiles,ReturnsAllWithProfiles,ReturnsPostY2WithProfiles,ReturnsPostY2WithProfilesWithTransactionsWithMatch
 del PurchaseDS, SaleDS, SaleNetworkQuarter, SalesMatch, PurchaseMatch, PurchaseNetworkQuarter
+del ReturnsPostY2WithProfilesWithTransactionsWithMatchWithNetwork_minusq12,ReturnsPostY2WithProfilesWithTransactionsWithMatchWithNetwork
+
+FrameFinalEverything_minusq12=load_h2odataframe_returns(FinalEverything_minusq12)
 
 #%%
-
 #ReturnsPostY2WithProfilesWithTransactionsWithMatch=ReturnsPostY2WithProfilesWithTransactionsWithMatch[ReturnsPostY2WithProfilesWithTransactionsWithMatch['TaxQuarter']!=12]
-#FramePostY2=load_h2odataframe_returns(ReturnsPostY2WithProfiles)
-FrameFinalEverything_minusq12=load_h2odataframe_returns(FinalEverything_minusq12)
 
 TrainData, ValidData, TestData = divide_train_test(FrameFinalEverything_minusq12)
 #TrainPostY2, ValidPostY2, TestPostY2 = divide_train_test(FramePostY2)
-
+#all_network_features=all_network_features+['TotalBuyers',u'SalesDSUnTaxProp',u'SalesDSCreditRatio', u'SalesDSVatRatio', u'Missing_SalesDSUnTaxProp', u'Missing_SalesDSCreditRatio', u'Missing_SalesDSVatRatio', u'Missing_MaxSalesProp','salesds_merge']
 features=[return_features,dealer_features,all_network_features,return_features+\
           dealer_features,return_features+all_network_features,dealer_features+\
           all_network_features,return_features+dealer_features+all_network_features]
 
+#features=[return_features,ds_features,return_features+ds_features]
+
 for i in xrange(len(features)):
+    print "Building Model {}".format(i+1)
     rf_models[i].train(features[i], 'bogus_online', training_frame=TrainData, validation_frame=ValidData)
 
 legends=["Return features","Profile features","Network features","1 + 2","1 + 3","2 + 3","1 + 2 + 3"]
+#legends=["return_features","ds_features","return_features+ds_features"]
 
-plot=compare_models(rf_models,legends, of='Graphs/BogusOnline_comparison_plot_AllCombinations_minusq12_newdsfeatures.html',\
+plot=compare_models(rf_models,legends, of=r'Graphs/BogusOnline_comparison_plot_AllCombinations_minusq12_numericmerge_withds.html',\
                     title='Comparing All Models, Bogus Online')
 show(plot)
 #%%
@@ -195,11 +202,11 @@ for i in xrange(len(rf_models)):
     h2o.save_model(rf_models[i],path='Models')
 #%%
 for i in xrange(7):
-    show(analyze_model(rf_models[i],of=r"Graphs/BogusOnline_model{}_v2.html".format(i+1),n_rows=30)) 
+    show(analyze_model(rf_models[i],of=r"Graphs/BogusOnline_model{}_v2_numericmerge_withds.html".format(i+1),n_rows=30)) 
 
 #%%
 #generate_predictions(models,ValidationData,FilePath,ColumnTitle):
-generate_predictions(rf_models,ValidData,'PredictionsBogusOnline_v2.csv','BogusOnlineModel')
+generate_predictions(rf_models,ValidData,'PredictionsBogusOnline_v2_numericmerge_withDS.csv','BogusOnlineModel')
 #%%
 
 features=[return_features,dealer_features,all_network_features,return_features+\
@@ -211,15 +218,15 @@ for i in xrange(len(features)):
 
 legends=["Return features","Profile features","Network features","1 + 2","1 + 3","2 + 3","1 + 2 + 3"]
 
-plot=compare_models(rf_models,legends, of='Graphs/BogusCancellation_comparison_plot_AllCombinations_minusq12.html',\
+plot=compare_models(rf_models,legends, of='Graphs/BogusCancellation_comparison_plot_AllCombinations_minusq12_numericmerge_withds.html',\
                     title='Comparing All Models, Bogus Cancellation')
 show(plot)
 #%%
 for i in xrange(7):
-    show(analyze_model(rf_models[i],of=r"Graphs/BogusCancellation_model{}_v2.html".format(i+1),n_rows=30)) 
+    show(analyze_model(rf_models[i],of=r"Graphs/BogusCancellation_model{}_v2_numericmerge_withds.html".format(i+1),n_rows=30)) 
 
 #%%
-generate_predictions(rf_models,ValidData,r'PredictionsBogusCancellation_v2.csv','BogusCancellationModel')
+generate_predictions(rf_models,ValidData,r'PredictionsBogusCancellation_v2_numericmerge_withDS.csv','BogusCancellationModel')
 #%%
 # In this cell, we compare the model where we add match and proportion sales made to registered firms
 FinalEverything_minusq12=FinalEverything[FinalEverything['TaxQuarter']!=12]
@@ -347,7 +354,7 @@ plot=compare_models(model1=rf_v1,model2=rf_v2,model3=rf_v3,model4=rf_v4,model5=r
 show(plot)
 
 #%%
-rf_models = [h2o.load_model('Models/rf_v{}'.format(i+1)) for i in xrange(7)]
+rf_models = [h2o.load_model('Models/BogusOnline_Model{}'.format(i+1)) for i in xrange(7)]
 
 for i in xrange(len(rf_models)):
     h2o.save_model(rf_models[i],path='Models')

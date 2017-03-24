@@ -81,11 +81,14 @@ def set_downstream_factors(fr):
     fr['Missing_SalesDSUnTaxProp']=fr['Missing_SalesDSUnTaxProp'].asfactor()
     fr['Missing_SalesDSCreditRatio']=fr['Missing_SalesDSCreditRatio'].asfactor()
     fr['Missing_SalesDSVatRatio']=fr['Missing_SalesDSVatRatio'].asfactor()
+    fr['Missing_MaxSalesProp']=fr['Missing_MaxSalesProp'].asfactor()
+    fr['Missing_MaxPurchaseProp']=fr['Missing_MaxPurchaseProp'].asfactor()
     fr['Missing_PurchaseDSUnTaxProp']=fr['Missing_PurchaseDSUnTaxProp'].asfactor()
     fr['Missing_PurchaseDSCreditRatio']=fr['Missing_PurchaseDSCreditRatio'].asfactor()
     fr['Missing_PurchaseDSVatRatio']=fr['Missing_PurchaseDSVatRatio'].asfactor()
     fr['salesds_merge']=fr['salesds_merge'].asfactor()
     fr['purchaseds_merge']=fr['purchaseds_merge'].asfactor()
+    return fr
 
 def load_h2odataframe_returns(returns):
     fr=h2o.H2OFrame(python_obj=returns)
@@ -98,6 +101,16 @@ def load_h2odataframe_returns(returns):
     fr=set_downstream_factors(fr)
     return fr
     
+#def load_h2odataframe_returns_fromfile():
+#    fr=h2o.upload_file(path=bogus_dealers_dir+'\FinalEverything_minusq12.csv')
+#    fr=set_profile_factors(fr)
+#    fr=set_match_factors(fr)
+#    fr=set_transaction_factors(fr)
+#    fr=set_purchasenetwork_factors(fr)
+ #   fr=set_salenetwork_factors(fr)
+#    fr=set_downstream_factors(fr)
+#    return fr
+
 def set_return_factors(fr):    
     fr['bogus_online'] = fr['bogus_online'].asfactor()
     fr['ZeroTaxCredit'] = fr['ZeroTaxCredit'].asfactor()
@@ -158,10 +171,3 @@ def set_salenetwork_factors(fr):
     fr['salesnetwork_merge']=fr['salesnetwork_merge'].asfactor()
     return fr
       
-#def set_predictions(model,data):
-#    X=model.predict(data)
-#    X=X.as_data_frame(use_pandas=True)
-#    Y=data.as_data_frame(use_pandas=True)
-#    X=X.drop(['p0','predict'],axis=1)
-#    result=pd.concat([Y,X],axis=1)
-#    return result

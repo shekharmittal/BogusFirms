@@ -33,7 +33,7 @@ def init():
     import sys
     sys.stdout = PseudoTTY(sys.stdout)
     # </hack>
-    h2o.init(nthreads = -1,max_mem_size="48G")
+    h2o.init(nthreads = -1,max_mem_size="58G")
     h2o.remove_all()
 
 #defining a function to shut down the code
@@ -103,75 +103,7 @@ rf_models = [H2ORandomForestEstimator(
 
 #%%
 #Merging all data into one file
-# load returns data
-ReturnsAll=load_returns()
-ReturnsAll['DealerTIN']=pd.to_numeric(ReturnsAll['DealerTIN'])
-ReturnsAll['TaxQuarter']=pd.to_numeric(ReturnsAll['TaxQuarter'])
-
-ReturnsAll=ReturnsAll.drop([u'TotalOutputTax', u'NetTax',u'ExemptedSales',u'TotalTaxCredit', u'BalanceBroughtForward',u'TDSCertificates',u'LocalTaxRatio'], axis=1)
-
-# load profiles data
-Profiles=load_profile()
-Profiles['DealerTIN']=pd.to_numeric(Profiles['DealerTIN'],errors='coerce')
-
-
-#Merge returns data with profile data
-ReturnsAllWithProfiles=pd.merge(ReturnsAll, Profiles, how='left', on=['DealerTIN'], indicator='profile_merge')
-
-#save returns only from year 3 onwards (inclusive)
-ReturnsPostY2WithProfiles=ReturnsAllWithProfiles[ReturnsAllWithProfiles['TaxQuarter']>8]
-
-SalesMatch=load_matchsales()
-SalesMatch=SalesMatch.drop(['diff','absdiff','maxSalesTax','OtherDeclarationCount','MyDeclarationCount','MatchDeclarationCount','OtherDeclarationTax','MyDeclarationTax','MatchDeclarationTax'],axis=1)
-SalesMatch['DealerTIN']=pd.to_numeric(SalesMatch['DealerTIN'],errors='coerce')
-SalesMatch['TaxQuarter']=pd.to_numeric(SalesMatch['TaxQuarter'],errors='coerce')
-
-ReturnsPostY2WithProfilesWithTransactionsWithMatch=pd.merge(ReturnsPostY2WithProfiles,SalesMatch, how='left', on=['DealerTIN','TaxQuarter'], indicator='salesmatch_merge')
-
-PurchaseMatch=load_matchpurchases()
-PurchaseMatch=PurchaseMatch.drop(['OtherDeclarationCount','MyDeclarationCount', 'MatchDeclarationCount', 'OtherDeclarationTax', 'MyDeclarationTax', 'MatchDeclarationTax', 'diff', 'absdiff', 'maxPurchaseTax'],axis=1)
-PurchaseMatch['DealerTIN']=pd.to_numeric(PurchaseMatch['DealerTIN'],errors='coerce')
-PurchaseMatch['TaxQuarter']=pd.to_numeric(PurchaseMatch['TaxQuarter'],errors='coerce')
-
-ReturnsPostY2WithProfilesWithTransactionsWithMatch=pd.merge(ReturnsPostY2WithProfilesWithTransactionsWithMatch,PurchaseMatch, how='left', on=['DealerTIN','TaxQuarter'], indicator='purchasematch_merge')
-
-#Importing Network features (sales side)
-#Importing Network features (purchase side)
-SaleNetworkQuarter=load_salenetwork()
-SaleNetworkQuarter['DealerTIN']=pd.to_numeric(SaleNetworkQuarter['DealerTIN'],errors='coerce')
-SaleNetworkQuarter['TaxQuarter']=pd.to_numeric(SaleNetworkQuarter['TaxQuarter'],errors='coerce')
-ReturnsPostY2WithProfilesWithTransactionsWithMatchWithNetwork=pd.merge(ReturnsPostY2WithProfilesWithTransactionsWithMatch,SaleNetworkQuarter,how='left', on=['DealerTIN','TaxQuarter'], indicator='salesnetwork_merge')
-
-PurchaseNetworkQuarter=load_purchasenetwork()
-PurchaseNetworkQuarter['DealerTIN']=pd.to_numeric(PurchaseNetworkQuarter['DealerTIN'],errors='coerce')
-PurchaseNetworkQuarter['TaxQuarter']=pd.to_numeric(PurchaseNetworkQuarter['TaxQuarter'],errors='coerce')
-ReturnsPostY2WithProfilesWithTransactionsWithMatchWithNetwork=pd.merge(ReturnsPostY2WithProfilesWithTransactionsWithMatchWithNetwork,PurchaseNetworkQuarter,how='left', on=['DealerTIN','TaxQuarter'], indicator='purchasenetwork_merge')
-
-ReturnsPostY2WithProfilesWithTransactionsWithMatchWithNetwork_minusq12=ReturnsPostY2WithProfilesWithTransactionsWithMatchWithNetwork\
-[ReturnsPostY2WithProfilesWithTransactionsWithMatchWithNetwork['TaxQuarter']!=12]
-
-#FinalEverything_minusq12.to_csv(bogus_dealers_dir+'\FinalEverything_minusq12.csv')
-
-PurchaseDS=load_purchasedownstream()
-PurchaseDS['DealerTIN']=pd.to_numeric(PurchaseDS['DealerTIN'],errors='coerce')
-PurchaseDS['TaxQuarter']=pd.to_numeric(PurchaseDS['TaxQuarter'],errors='coerce')
-
-FinalEverything_minusq12=pd.merge(ReturnsPostY2WithProfilesWithTransactionsWithMatchWithNetwork_minusq12,\
-                                  PurchaseDS,how='left', on=['DealerTIN','TaxQuarter'], indicator='purchaseds_merge')
-
-#fr=load_h2odataframe_returns(FinalEverything_minusq12)
-
-SaleDS=load_salesdownstream()
-SaleDS['DealerTIN']=pd.to_numeric(SaleDS['DealerTIN'],errors='coerce')
-SaleDS['TaxQuarter']=pd.to_numeric(SaleDS['TaxQuarter'],errors='coerce')
-
-FinalEverything_minusq12=pd.merge(FinalEverything_minusq12,SaleDS,how='left',\
-                                 on=['DealerTIN','TaxQuarter'], indicator='salesds_merge')
-
-
-del ReturnsAll,Profiles,ReturnsAllWithProfiles,ReturnsPostY2WithProfiles,ReturnsPostY2WithProfilesWithTransactionsWithMatch
-del PurchaseDS, SaleDS, SaleNetworkQuarter, SalesMatch, PurchaseMatch, PurchaseNetworkQuarter
-del ReturnsPostY2WithProfilesWithTransactionsWithMatchWithNetwork_minusq12,ReturnsPostY2WithProfilesWithTransactionsWithMatchWithNetwork
+FinalEverything_minusq12=load_everything()
 
 FrameFinalEverything_minusq12=load_h2odataframe_returns(FinalEverything_minusq12)
 
@@ -228,14 +160,6 @@ for i in xrange(7):
 #%%
 generate_predictions(rf_models,ValidData,r'PredictionsBogusCancellation_v2_numericmerge_withDS.csv','BogusCancellationModel')
 #%%
-# In this cell, we compare the model where we add match and proportion sales made to registered firms
-FinalEverything_minusq12=FinalEverything[FinalEverything['TaxQuarter']!=12]
-
-#ReturnsPostY2WithProfilesWithTransactionsWithMatch=ReturnsPostY2WithProfilesWithTransactionsWithMatch[ReturnsPostY2WithProfilesWithTransactionsWithMatch['TaxQuarter']!=12]
-#FramePostY2=load_h2odataframe_returns(ReturnsPostY2WithProfiles)
-FrameFinalEverything_minusq12=load_h2odataframe_returns(FinalEverything_minusq12)
-
-
 FrameFinalEverything_minusq12['TaxQuarter']=FrameFinalEverything_minusq12['TaxQuarter'].asnumeric()
 
 b = FrameFinalEverything_minusq12['TIN_hash_byte']
@@ -251,23 +175,27 @@ features=[return_features,dealer_features,all_network_features,return_features+\
 
 for i in xrange(len(features)):
     rf_models[i].train(features[i], 'bogus_online', training_frame=train_2012_13, validation_frame=valid_2012_13)
-   
-
+ 
 legends=["Return features","Profile features","Network features","1 + 2","1 + 3","2 + 3","1 + 2 + 3"]
 
-plot=compare_models(rf_models,legends, of='Graphs/BogusOnline_comparison_plot_AllCombinations_minusq12_minusY5.html',\
+plot=compare_models(rf_models,legends, of='Graphs/BogusOnline_comparison_plot_AllCombinations_minusq12_minusY5_withDS.html',\
                     title='Comparing All Models, Bogus Online (Drop Y5 in training)')
 show(plot)
-
 #%%
-generate_predictions(rf_models,valid_2012_13,'PredictionsBogusOnline_v2_2013_MinusY5.csv','BogusOnlineModel')
-generate_predictions(rf_models,valid_2014,'PredictionsBogusOnline_v2_2014_MinusY5.csv','BogusOnlineModel')
+generate_predictions(rf_models,valid_2012_13,'PredictionsBogusOnline_v2_2013_MinusY5_withDS.csv','BogusOnlineModel')
+generate_predictions(rf_models,valid_2014,'PredictionsBogusOnline_v2_2014_MinusY5_withDS.csv','BogusOnlineModel')
 
 #%%
 for i in xrange(7):
-    show(analyze_model(rf_models[i],of=r"Graphs/BogusOnline_model{}_v2_MinusY5.html".format(i+1),n_rows=30)) 
+    show(analyze_model(rf_models[i],of=r"Graphs/BogusOnline_model{}_v2_MinusY5_withDS.html".format(i+1),n_rows=30)) 
 #%%
 features=[return_features,dealer_features,all_network_features,return_features+dealer_features,return_features+all_network_features,dealer_features+all_network_features,return_features+dealer_features+all_network_features]
+
+FrameFinalEverything_minusq12['TaxQuarter']=FrameFinalEverything_minusq12['TaxQuarter'].asnumeric()
+
+b = FrameFinalEverything_minusq12['TIN_hash_byte']
+c = FrameFinalEverything_minusq12['TaxQuarter']
+
 
 train_2012 = FrameFinalEverything_minusq12[ (b < 200) & (c < 13)]
 valid_2012 = FrameFinalEverything_minusq12[ (200 <= b) & (b < 232) & (c < 13)]
@@ -289,6 +217,14 @@ generate_predictions(rf_models,valid_2014,'PredictionsBogusOnline_v2_2014_OnlyY3
 for i in xrange(7):
     show(analyze_model(rf_models[i],of=r"Graphs/BogusOnline_model{}_v2_OnlyY3.html".format(i+1),n_rows=30, title=legends[i])) 
 #%%
+#Comparing the two validation sets
+rf_models[0].train(features[6], 'bogus_online', training_frame=train_2012, validation_frame=valid_2012)
+rf_models[1].train(features[6], 'bogus_online', training_frame=train_2012, validation_frame=valid_2013)
+
+legends=["Validation Set 2012","Validation Set 2013"]
+
+plot=compare_models(rf_models[0:2],legends, of='Graphs/BogusOnline_comparison_plot_Valid2012vsValid2013_minusq12_minusY5_OnlyY3.html',title='Comparing 2 validation sets, Bogus Online (Only Y3 in training)')
+show(plot)
 #%%
 # Lets compare the three bogus variables 
 train, valid, test = divide_train_test(fr)

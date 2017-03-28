@@ -92,6 +92,10 @@ ds_features=[u'purchaseds_merge', u'MaxPurchaseProp', u'PurchaseDSUnTaxProp',\
              u'Missing_SalesDSCreditRatio', u'Missing_SalesDSVatRatio', u'TotalBuyers']
        
 all_network_features=transaction_features+match_features+network_features+ds_features
+
+features=[return_features,dealer_features,all_network_features,return_features+\
+          dealer_features,return_features+all_network_features,dealer_features+\
+          all_network_features,return_features+dealer_features+all_network_features]
 #%%
 rf_models = [H2ORandomForestEstimator(
         model_id="rf_v{}".format(i),
@@ -113,9 +117,6 @@ FrameFinalEverything_minusq12=load_h2odataframe_returns(FinalEverything_minusq12
 TrainData, ValidData, TestData = divide_train_test(FrameFinalEverything_minusq12)
 #TrainPostY2, ValidPostY2, TestPostY2 = divide_train_test(FramePostY2)
 #all_network_features=all_network_features+['TotalBuyers',u'SalesDSUnTaxProp',u'SalesDSCreditRatio', u'SalesDSVatRatio', u'Missing_SalesDSUnTaxProp', u'Missing_SalesDSCreditRatio', u'Missing_SalesDSVatRatio', u'Missing_MaxSalesProp','salesds_merge']
-features=[return_features,dealer_features,all_network_features,return_features+\
-          dealer_features,return_features+all_network_features,dealer_features+\
-          all_network_features,return_features+dealer_features+all_network_features]
 
 #features=[return_features,ds_features,return_features+ds_features]
 
@@ -226,6 +227,34 @@ legends=["Validation Set 2012","Validation Set 2013"]
 plot=compare_models(rf_models[0:2],legends, of='Graphs/BogusOnline_comparison_plot_Valid2012vsValid2013_minusq12_minusY5_OnlyY3.html',title='Comparing 2 validation sets, Bogus Online (Only Y3 in training)')
 show(plot)
 #%%
+FrameFinalEverything_minusq12['TaxQuarter']=FrameFinalEverything_minusq12['TaxQuarter'].asnumeric()
+
+b = FrameFinalEverything_minusq12['TIN_hash_byte']
+c = FrameFinalEverything_minusq12['TaxQuarter']
+
+train_2012 = FrameFinalEverything_minusq12[ (b < 200) & (c < 13)]
+valid = {}
+valid[0]=FrameFinalEverything_minusq12[(200 <= b) & (b < 232) & (c <=11)]
+valid[1]=FrameFinalEverything_minusq12[((200 <= b) & (b < 232)) & ((c==11)|(c==13))]
+for i in xrange(13,20):
+    valid[i-11]=FrameFinalEverything_minusq12[ (200 <= b) & (b < 232) & ((c==i)|(c==i+1))]
+
+rf_models = [H2ORandomForestEstimator(
+        model_id="rf_v{}".format(i),
+        ntrees=200,
+        stopping_rounds=2,
+        score_each_iteration=True,
+        seed=1000000) \
+    for i in xrange(1,len(valid)+1)]
+
+for i in xrange(len(valid)):
+    rf_models[i].train(features[4], 'bogus_online', training_frame=train_2012, validation_frame=valid[i])
+ 
+legends=["9-11","11,13","13,14","14,15","15,16","16,17","17,18","18,19","19,20"]
+    
+plot=compare_models(rf_models,legends, of='Graphs/BogusOnline_comparison_plot_SerialValidSets_minusq12_OnlyY3_WithoutDP.html',title='Continous validation sets, Only Y3 in training, without DP')
+show(plot)
+#%%
 # Lets compare the three bogus variables 
 train, valid, test = divide_train_test(fr)
 
@@ -291,6 +320,11 @@ show(plot)
 
 #%%
 rf_models = [h2o.load_model('Models/BogusOnline_Model{}'.format(i+1)) for i in xrange(7)]
+
+
+rf_models = [h2o.load_model('Models/BogusOnline_Model{}_NumericMerge_DS'.format(i+1)) for i in xrange(7)]
+
+
 
 for i in xrange(len(rf_models)):
     h2o.save_model(rf_models[i],path='Models')

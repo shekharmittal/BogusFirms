@@ -11,7 +11,7 @@ import h2o
 from h2o.estimators.glm import H2OGeneralizedLinearEstimator
 from h2o.estimators.random_forest import H2ORandomForestEstimator
 from h2o.estimators.gbm import H2OGradientBoostingEstimator
-
+from h2o.grid.grid_search import H2OGridSearch
 from numpy import *
 from bokeh.palettes import *
 import md5
@@ -162,5 +162,49 @@ show(analyze_model(gbm_v3,of=r"BogusFirmCatching/Graphs/BogusOnline_model_gbm_v3
 h2o.save_model(gbm_v1,path='Models')
 h2o.save_model(gbm_v2,path='Models')
 h2o.save_model(gbm_v3,path='Models')
+
+
+#%%
+# Gridsearch
+
+## Depth 10 is usually plenty of depth for most datasets, but you never know
+hyper_params_tune = {'max_depth':[5,10,15,20,25,30],'ntrees':[10,50,100,200,500],'stopping_rounds':[2,3,4]} ##faster for larger datasets
+search_criteria_tune = {'strategy': "Cartesian"}
+                        
+                        #'seed':1000000}
+
+TrainData, ValidData, TestData = divide_train_test(FrameFinalEverything_minusq12)
+
+grid_search=H2OGridSearch(H2ORandomForestEstimator,  grid_id = 'rf_grid', hyper_params=hyper_params_tune, search_criteria=search_criteria_tune)
+grid_search.train(features[6], 'bogus_online', training_frame=TrainData, validation_frame=ValidData)
+
+h2o.save_model(grid_search,path='Models')
+
+legends=["Return features","Profile features","Network features","1 + 2","1 + 3","2 + 3","1 + 2 + 3"]
+
+plot=compare_models(grid_search[:7],legends, of='Graphs/BogusCancellation_comparison_plot_AllCombinations_minusq12_numericmerge_withds.html',\
+                    title='Comparing All Models, Bogus Cancellation')
+show(plot)
+
+## Sort the grid models by AUC
+sorted_final_grid = grid_search.get_grid(sort_by='tpr',decreasing=True)
+
+print sorted_final_grid
+
+
+for i in xrange(len(grid_search)):
+    h2o.save_model(grid_search[i],path='Models/GridSearch')
+
+
+import sys
+
+orig_stdout = sys.stdout
+f = open('Models/GridSearch/grids.txt', 'w')
+sys.stdout = f
+
+print grid_search
+
+sys.stdout = orig_stdout
+f.close()
 
 

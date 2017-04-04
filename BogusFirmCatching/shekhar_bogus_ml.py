@@ -257,7 +257,7 @@ legends=["9-11","11,13","13,14","14,15","15,16","16,17","17,18","18,19","19,20"]
 plot=compare_models(rf_models,legends, of='Graphs/BogusOnline_comparison_plot_SerialValidSets_minusq12_OnlyY3.html',title='Continous validation sets, Only Y3 in training')
 show(plot)
 #%%
-rf_models = [h2o.load_model('Models/BogusOnline_Model{}'.format(i+1)) for i in xrange(7)]
+rf_models = [h2o.load_model('Models/BogusOnline_NumericMerge_DS_Model{}'.format(i+1)) for i in xrange(7)]
 
 
 rf_models = [h2o.load_model('Models/BogusOnline_Model{}_NumericMerge_DS'.format(i+1)) for i in xrange(7)]

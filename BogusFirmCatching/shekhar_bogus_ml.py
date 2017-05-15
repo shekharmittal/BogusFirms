@@ -16,7 +16,7 @@ from h2o.estimators.glm import H2OGeneralizedLinearEstimator
 from h2o.estimators.random_forest import H2ORandomForestEstimator
 from numpy import *
 from bokeh.palettes import *
-import md5
+from hashlib import md5
 
 def init():
     global sr,fr,share_cols
@@ -90,7 +90,7 @@ ds_features=[u'purchaseds_merge', u'MaxPurchaseProp', u'PurchaseDSUnTaxProp',\
              u'salesds_merge', u'MaxSalesProp',u'Missing_MaxSalesProp', u'SalesDSUnTaxProp',\
              u'SalesDSCreditRatio', u'SalesDSVatRatio', u'Missing_SalesDSUnTaxProp', \
              u'Missing_SalesDSCreditRatio', u'Missing_SalesDSVatRatio', u'TotalBuyers']
-       
+
 all_network_features=transaction_features+match_features+network_features+ds_features
 
 features=[return_features,dealer_features,all_network_features,return_features+\
@@ -135,7 +135,7 @@ for i in xrange(len(rf_models)):
     h2o.save_model(rf_models[i],path='Models')
 #%%
 for i in xrange(7):
-    show(analyze_model(rf_models[i],of=r"Graphs/BogusOnline_model{}_v2_numericmerge_withds.html".format(i+1),n_rows=30)) 
+    show(analyze_model(rf_models[i],of=r"Graphs/BogusOnline_model{}_v2_numericmerge_withds.html".format(i+1),n_rows=30))
 
 #%%
 #generate_predictions(models,ValidationData,FilePath,ColumnTitle):
@@ -157,7 +157,7 @@ plot=compare_models(rf_models,legends, of='Graphs/BogusCancellation_comparison_p
 show(plot)
 #%%
 for i in xrange(7):
-    show(analyze_model(rf_models[i],of=r"Graphs/BogusCancellation_model{}_v2_numericmerge_withds.html".format(i+1),n_rows=30)) 
+    show(analyze_model(rf_models[i],of=r"Graphs/BogusCancellation_model{}_v2_numericmerge_withds.html".format(i+1),n_rows=30))
 
 #%%
 generate_predictions(rf_models,ValidData,r'PredictionsBogusCancellation_v2_numericmerge_withDS.csv','BogusCancellationModel')
@@ -166,7 +166,7 @@ FrameFinalEverything_minusq12['TaxQuarter']=FrameFinalEverything_minusq12['TaxQu
 
 b = FrameFinalEverything_minusq12['TIN_hash_byte']
 c = FrameFinalEverything_minusq12['TaxQuarter']
- 
+
 train_2012_13 = FrameFinalEverything_minusq12[ (b < 200) & (c < 17)]
 valid_2012_13 = FrameFinalEverything_minusq12[ (200 <= b) & (b < 232) & (c < 17)]
 valid_2014 = FrameFinalEverything_minusq12[ (200 <= b) & (b < 232) & (c >= 17)]
@@ -177,7 +177,7 @@ features=[return_features,dealer_features,all_network_features,return_features+\
 
 for i in xrange(len(features)):
     rf_models[i].train(features[i], 'bogus_online', training_frame=train_2012_13, validation_frame=valid_2012_13)
- 
+
 legends=["Return features","Profile features","Network features","1 + 2","1 + 3","2 + 3","1 + 2 + 3"]
 
 plot=compare_models(rf_models,legends, of='Graphs/BogusOnline_comparison_plot_AllCombinations_minusq12_minusY5_withDS.html',\
@@ -189,7 +189,7 @@ generate_predictions(rf_models,valid_2014,'PredictionsBogusOnline_v2_2014_MinusY
 
 #%%
 for i in xrange(7):
-    show(analyze_model(rf_models[i],of=r"Graphs/BogusOnline_v2_MinusY5_withDS_Model{}.html".format(i+1),n_rows=30)) 
+    show(analyze_model(rf_models[i],of=r"Graphs/BogusOnline_v2_MinusY5_withDS_Model{}.html".format(i+1),n_rows=30))
 #%%
 features=[return_features,dealer_features,all_network_features,return_features+dealer_features,return_features+all_network_features,dealer_features+all_network_features,return_features+dealer_features+all_network_features]
 
@@ -218,7 +218,7 @@ generate_predictions(rf_models,valid_2013,'PredictionsBogusOnline_v2_2013_OnlyY3
 generate_predictions(rf_models,valid_2014,'PredictionsBogusOnline_v2_2014_OnlyY3.csv','BogusOnlineModel')
 #%%
 for i in xrange(7):
-    show(analyze_model(rf_models[i],of=r"Graphs/BogusOnline_model{}_v2_OnlyY3.html".format(i+1),n_rows=30, title=legends[i])) 
+    show(analyze_model(rf_models[i],of=r"Graphs/BogusOnline_model{}_v2_OnlyY3.html".format(i+1),n_rows=30, title=legends[i]))
 #%%
 #Comparing the two validation sets
 rf_models[0].train(features[6], 'bogus_online', training_frame=train_2012, validation_frame=valid_2012)
@@ -251,9 +251,9 @@ rf_models = [H2ORandomForestEstimator(
 
 for i in xrange(len(valid)):
     rf_models[i].train(features[6], 'bogus_online', training_frame=train_2012, validation_frame=valid[i])
- 
+
 legends=["9-11","11,13","13,14","14,15","15,16","16,17","17,18","18,19","19,20"]
-    
+
 plot=compare_models(rf_models,legends, of='Graphs/BogusOnline_comparison_plot_SerialValidSets_minusq12_OnlyY3.html',title='Continous validation sets, Only Y3 in training')
 show(plot)
 #%%
@@ -289,10 +289,10 @@ returns.columns # shows column names
 returns.sort_values(by='Columna name')
 
 df['E'][df['E'].isin(['two','four'])]='five'
- 
+
 returns.hist(column='ZeroTaxCredit', by='TaxQuarter')
- 
- 
+
+
 df.ix[df.AAA >= 5,'BBB'] = -1; df
 
 
@@ -301,8 +301,8 @@ df = pd.DataFrame({'animal': 'cat dog cat fish dog cat cat'.split(),
    ....:                    'size': list('SSMMMLL'),
    ....:                    'weight': [8, 10, 11, 1, 20, 12, 12],
    ....:                    'adult' : [False] * 5 + [True] * 2}); df
-   ....: 
-Out[89]: 
+   ....:
+Out[89]:
    adult animal size  weight
 0  False    cat    S       8
 1  False    dog    S      10
@@ -313,14 +313,14 @@ Out[89]:
 6   True    cat    L      12
 
 #List the size of the animals with the highest weight.
-In [90]: df.groupby('animal').apply(lambda subf: subf['size'][subf['weight'].idxmax()]) 
+In [90]: df.groupby('animal').apply(lambda subf: subf['size'][subf['weight'].idxmax()])
 
 h2o.varimp(my_imp.rf)
 
 gb = df.groupby(['animal'])
 
 #%%
-# Features that we intuitvely understand 
+# Features that we intuitvely understand
 basic_features = ['MoneyDeposited','VatRatio','LocalVatRatio','TurnoverGross','TurnoverLocal','OutputTaxBeforeAdjustment','TaxCreditBeforeAdjustment','TotalReturnCount']
 # Features that we think can be important
 # We should drop MoneyGroup 'PositiveContribution'
